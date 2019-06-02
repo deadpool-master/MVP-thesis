@@ -1,33 +1,32 @@
 var express = require('express');
 var bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const bodyParser = require('body-parser');
 
 //add sql database
 
-
 const app = express();
-const port = process.env.PORT || 1997
+const port = process.env.PORT || 3000
 const saltRounds = 10;
 
-app.use(function (req, res, next) {
-  res.send('Hello World')
-});
-app.use(function (err, req, res, next) {
-  console.error(err.stack)
-  res.status(500).send('Something broke!')
-});
+//status codes
+const UNAUTHORIZED_status = 401;
+const SERVER_ERROR = 500;
 
-
+app.use(bodyParser.urlencoded({ extended: false }))
+app.use(bodyParser.json());
 
 //sign up for admin(dispatch)
 
-app.post('/signupadmin', (res, req) => {
+app.post('/signupadmin', (req, res) => {
   console.log(req.body);
-  const firstname = req.body.username;
-  const lastname = req.body.username;
+  const firstname = req.body.firstname;
+  const lastname = req.body.lastname;
   const email = req.body.email;
-  const phonenumber = req.body.phonenumbar;
+  const phonenumber = req.body.phonenumber;
   const password = req.body.password;
   const hashedpass = bcrypt.hashSync(password, saltRounds);
+  res.send(req.body)
 
   console.log(password);
   console.log(hashedpass);
@@ -39,13 +38,13 @@ app.post('/signupadmin', (res, req) => {
       console.error('Please Change your email address, Thank you!');
       return res.send('Email already in use from another customer, Please sign up with another email address.')
 
-    } else if (data.phonenumbar) {
+    } else if (data.phonenumber) {
       console.log("phone numbar already exists!");
       alert('phone numbar already exists!');
       console.error('Please Change your phonen umbar, Thank you!');
       return res.send('phone numbar already in use for another customer, Please sign up with another phone numbar.')
 
-    } else if (data.email && data.phonenumbar) {
+    } else if (data.email && data.phonenumber) {
       console.log("Please Change your email and phone number to signup");
       alert('Please Change your email and phone number to signup');
       console.error('Email & Phone number are already used, Please change them to sign up');
@@ -62,7 +61,8 @@ app.post('/signupadmin', (res, req) => {
         console.log('Done, You are succesfully sign up :D');
         return res.send({ done: " succesful", tt: tt });
       }).catch((err) => {
-        return res.status(500).send({ error: 'server error' });
+        console.log(err);
+        return res.status(SERVER_ERROR).send({ error: 'server error' });
       });
     }
 
@@ -71,8 +71,8 @@ app.post('/signupadmin', (res, req) => {
 });
 
 // Sign In Admin (dispatch)
-app.post('/signinadmin', (res, req) => {
-  const emailorphonenumber = req.body.email || req.body.phonenumbar;
+app.post('/signinadmin', (req, res) => {
+  const emailorphonenumber = req.body.email || req.body.phonenumber;
   const password = req.body.password;
 
   admin.findOne({ emailorphonenumber: emailorphonenumber }).then((data) => {
@@ -81,7 +81,7 @@ app.post('/signinadmin', (res, req) => {
       alert('You Email is not registered yet, Please sign up first');
       console.error('You Email is not registered yet, Please sign up first');
       return res.send('You Email is not registered yet, Please sign up first');
-    } else if (!data.req.body.phonenumbar) {
+    } else if (!data.req.body.phonenumber) {
       console.log("Your phone number is not registered, Please Sign up first");
       alert('Your phone number is not registered, Please Sign up first');
       console.error('Your phone number is not registered, Please Sign up first');
@@ -94,7 +94,7 @@ app.post('/signinadmin', (res, req) => {
         const token = jwt.sign({ email: data.emailorphonenumber }, /*Secret Key */ { expiresin: '1h' });
         return res.send({ token: token });
       } else {
-        return res.status(401).send({ error: "Password is incorrect" });
+        return res.status(UNAUTHORIZED_status).send({ error: "Password is incorrect" });
       }
     });
   });
